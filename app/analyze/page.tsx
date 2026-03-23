@@ -416,7 +416,7 @@ export default function AnalyzePage() {
       if (ct)    formData.append("ct", ct)
       if (audio) formData.append("audio", audio)
 
-      const res = await fetch("http://127.0.0.1:5000/api/predict/", {
+      const res = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/predict/", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

@@ -67,7 +67,7 @@ const DEFAULT_DOCTORS = [
 
 async function fetchApprovedDoctors() {
   try {
-    const res = await fetch("http://127.0.0.1:5000/api/doctors/")
+    const res = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/doctors/")
     const data = await res.json()
     return data.doctors || []
   } catch { return [] }
@@ -75,7 +75,7 @@ async function fetchApprovedDoctors() {
 
 async function fetchHistory() {
   const token = localStorage.getItem("token")
-  const res = await fetch("http://127.0.0.1:5000/api/predict/history", {
+  const res = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/predict/history", {
     headers: { Authorization: `Bearer ${token}` },
   })
   const data = await res.json()
@@ -255,7 +255,7 @@ function DoctorRegistrationForm({ onClose }: { onClose: () => void }) {
       const formData = new FormData()
       Object.entries(form).forEach(([k,v]) => formData.append(k,v))
       if (photo) formData.append("photo", photo)
-      const res  = await fetch("http://127.0.0.1:5000/api/doctors/register", { method:"POST", body:formData })
+      const res  = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/doctors/register", { method:"POST", body:formData })
       const data = await res.json()
       if (res.ok) setSuccess(true)
       else setError(data.error||"Registration failed.")

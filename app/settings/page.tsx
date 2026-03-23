@@ -147,7 +147,7 @@ export default function SettingsPage() {
     setPasswordLoading(true)
     try {
       const token = localStorage.getItem("token")
-      const res   = await fetch("http://127.0.0.1:5000/api/auth/change-password", {
+      const res   = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ current_password: currentPass, new_password: newPass }),
@@ -171,7 +171,7 @@ export default function SettingsPage() {
     setDeleteLoading(true)
     try {
       const token = localStorage.getItem("token")
-      const res   = await fetch("http://127.0.0.1:5000/api/auth/delete-account", {
+      const res   = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/auth/delete-account", {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })

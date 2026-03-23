@@ -39,7 +39,7 @@ export default function ProfilePage() {
 
         // Then fetch fresh from backend
         const token = localStorage.getItem("token")
-        const res = await fetch("http://127.0.0.1:5000/api/auth/me", {
+        const res = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/auth/me", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
