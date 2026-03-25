@@ -82,7 +82,9 @@ export default function ResultsPage() {
     )
   }
 
-  const style = diseaseStyles[result.disease as keyof typeof diseaseStyles] || diseaseStyles.UNKNOWN_DISEASE
+  const style =
+    diseaseStyles[result.disease as keyof typeof diseaseStyles] ||
+    diseaseStyles.UNKNOWN_DISEASE
   const Icon = style.icon
   const confidencePct = Math.round(result.confidence * 100)
 
@@ -134,14 +136,34 @@ export default function ResultsPage() {
 
             {/* COPD Stage */}
             {result.copd_stage && (
-              <div className={cn("rounded-xl p-4", style.bgColor, "border", style.borderColor)}>
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className={cn("h-5 w-5", style.color)} />
-                  <span className="font-semibold text-foreground">
-                    COPD Stage: {result.copd_stage}
-                  </span>
+              <>
+                <div className={cn("rounded-xl p-4", style.bgColor, "border", style.borderColor)}>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className={cn("h-5 w-5", style.color)} />
+                    <span className="font-semibold text-foreground">
+                      COPD Stage: {result.copd_stage}
+                    </span>
+                  </div>
                 </div>
-              </div>
+
+                {/* GOLD Stage Explanation Box */}
+                <div className="rounded-xl p-4 border border-border bg-muted/30">
+                  <h3 className="font-semibold text-foreground mb-2">
+                    COPD Severity Guide (GOLD Stages)
+                  </h3>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>
+                      <span className="font-medium text-emerald-600">GOLD 1:</span> Mild (Less Severe)
+                    </p>
+                    <p>
+                      <span className="font-medium text-amber-600">GOLD 2:</span> Moderate (Medium Severity)
+                    </p>
+                    <p>
+                      <span className="font-medium text-rose-600">GOLD 3:</span> Severe
+                    </p>
+                  </div>
+                </div>
+              </>
             )}
 
             {/* Confidence Breakdown */}
@@ -151,16 +173,23 @@ export default function ResultsPage() {
                 <div className="space-y-3">
                   {Object.entries(result.confidence_vector).map(([disease, conf]) => {
                     const pct = Math.round(conf * 100)
-                    const itemStyle = diseaseStyles[disease as keyof typeof diseaseStyles] || diseaseStyles.UNKNOWN_DISEASE
+                    const itemStyle =
+                      diseaseStyles[disease as keyof typeof diseaseStyles] ||
+                      diseaseStyles.UNKNOWN_DISEASE
                     return (
                       <div key={disease}>
                         <div className="flex items-center justify-between text-sm mb-1">
                           <span className="text-muted-foreground">{disease}</span>
-                          <span className={cn("font-medium", itemStyle.color)}>{pct}%</span>
+                          <span className={cn("font-medium", itemStyle.color)}>
+                            {pct}%
+                          </span>
                         </div>
                         <div className="h-2 rounded-full bg-muted overflow-hidden">
                           <div
-                            className={cn("h-full rounded-full transition-all duration-500", itemStyle.bgColor.replace("/10", ""))}
+                            className={cn(
+                              "h-full rounded-full transition-all duration-500",
+                              itemStyle.bgColor.replace("/10", "")
+                            )}
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -174,7 +203,9 @@ export default function ResultsPage() {
             {/* Modalities Used */}
             {result.modalities_used && result.modalities_used.length > 0 && (
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Analysis based on:</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Analysis based on:
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {result.modalities_used.map((m) => (
                     <span
@@ -193,7 +224,7 @@ export default function ResultsPage() {
         {/* Disclaimer */}
         <div className="rounded-2xl border border-border bg-muted/30 p-4 mb-6">
           <p className="text-sm text-muted-foreground text-center">
-            This is a preliminary AI analysis. Please consult a healthcare professional
+            This is a preliminary analysis. Please consult a healthcare professional
             for a detailed diagnosis and treatment plan.
           </p>
         </div>

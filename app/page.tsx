@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Activity, Mail, Lock, ArrowRight } from "lucide-react"
+import { Activity, Mail, Lock, ArrowRight, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -13,6 +13,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [focused, setFocused] = useState<string | null>(null)
   const router = useRouter()
+
+  // Forgot password flow (reset token + new password)
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [resetToken, setResetToken] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [forgotMsg, setForgotMsg] = useState<string>("")
+  const [forgotError, setForgotError] = useState<string>("")
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,6 +49,72 @@ export default function LoginPage() {
     }
 
     setLoading(false)
+  }
+
+  const requestResetToken = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setForgotLoading(true)
+    setForgotMsg("")
+    setForgotError("")
+
+    try {
+      const res = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setForgotError(data.error || "Failed to request reset token")
+        return
+      }
+
+      setResetToken(data.reset_token || "")
+      setForgotMsg(data.message || "Reset token generated.")
+    } catch {
+      setForgotError("Something went wrong. Please try again.")
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setResetLoading(true)
+    setForgotMsg("")
+    setForgotError("")
+
+    try {
+      if (newPassword !== confirmPassword) {
+        setForgotError("Passwords do not match")
+        return
+      }
+
+      const res = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: resetToken, new_password: newPassword }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setForgotError(data.error || "Failed to reset password")
+        return
+      }
+
+      setForgotMsg(data.message || "Password reset successfully.")
+      // Close after success so user goes back to login.
+      setForgotOpen(false)
+      setResetToken("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setForgotEmail("")
+    } catch {
+      setForgotError("Something went wrong. Please try again.")
+    } finally {
+      setResetLoading(false)
+    }
   }
 
   return (
@@ -159,6 +236,27 @@ export default function LoginPage() {
                 </>
               )}
             </Button>
+
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotOpen(true)
+                  setForgotEmail(email)
+                  setResetToken("")
+                  setNewPassword("")
+                  setConfirmPassword("")
+                  setForgotMsg("")
+                  setForgotError("")
+                }}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Forgot password?
+              </button>
+              {forgotMsg && (
+                <span className="text-xs text-muted-foreground truncate">{forgotMsg}</span>
+              )}
+            </div>
           </form>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
@@ -172,6 +270,132 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      {forgotOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl border border-border w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="font-semibold text-foreground text-lg">Reset Password</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotOpen(false)
+                  setResetToken("")
+                  setForgotEmail("")
+                  setNewPassword("")
+                  setConfirmPassword("")
+                  setForgotMsg("")
+                  setForgotError("")
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {!resetToken ? (
+                <form onSubmit={requestResetToken} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Email</label>
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      required
+                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+
+                  {forgotError && (
+                    <p className="text-sm text-destructive">{forgotError}</p>
+                  )}
+                  {forgotMsg && (
+                    <p className="text-sm text-muted-foreground">{forgotMsg}</p>
+                  )}
+
+                  <Button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="w-full h-12 rounded-xl"
+                  >
+                    {forgotLoading ? "Generating..." : "Get Reset Code"}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleResetPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Reset Code</label>
+                    <input
+                      type="text"
+                      value={resetToken}
+                      onChange={(e) => setResetToken(e.target.value)}
+                      required
+                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Use the token returned by the backend (this demo doesn&apos;t send email).
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">New Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Confirm Password</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+
+                  {forgotError && (
+                    <p className="text-sm text-destructive">{forgotError}</p>
+                  )}
+                  {forgotMsg && (
+                    <p className="text-sm text-muted-foreground">{forgotMsg}</p>
+                  )}
+
+                  <Button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="w-full h-12 rounded-xl"
+                  >
+                    {resetLoading ? "Resetting..." : "Reset Password"}
+                  </Button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetToken("")
+                      setNewPassword("")
+                      setConfirmPassword("")
+                      setForgotError("")
+                      setForgotMsg("")
+                    }}
+                    className="w-full text-sm font-medium text-primary hover:underline"
+                  >
+                    Back
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

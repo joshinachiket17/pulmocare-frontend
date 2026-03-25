@@ -197,7 +197,15 @@ async function generateAndDownloadPDF(record: any) {
   drawLine()
 
   // ── Files ──────────────────────────────────────────────────────────────────
-  if (record.xray_url||record.ct_url||record.audio_url) {
+  const xrayUrl: string | undefined = record.xray_url || record.uploaded_files?.xray_url
+  const ctUrl: string | undefined = record.ct_url || record.uploaded_files?.ct_url
+  const audioUrlBase: string | undefined =
+    record.audio_url || record.uploaded_files?.audio_url
+  const audioUrl: string | undefined = audioUrlBase
+    ? (audioUrlBase.endsWith(".wav") ? audioUrlBase : `${audioUrlBase}.wav`)
+    : undefined
+
+  if (xrayUrl || ctUrl || audioUrl) {
     sectionTitle("Uploaded Files")
     const addFileRow = (label: string, url: string) => {
       checkPage(10)
@@ -212,12 +220,9 @@ async function generateAndDownloadPDF(record: any) {
       doc.link(x, y - 3.5, textW, 4.5, { url })
       y += 8
     }
-    if (record.xray_url)  addFileRow("X-Ray Image", record.xray_url)
-    if (record.ct_url)    addFileRow("CT Scan",     record.ct_url)
-    if (record.audio_url) {
-      const audioFullUrl = record.audio_url.endsWith(".wav") ? record.audio_url : `${record.audio_url}.wav`
-      addFileRow("Audio File", audioFullUrl)
-    }
+    if (xrayUrl) addFileRow("X-Ray Image", xrayUrl)
+    if (ctUrl) addFileRow("CT Scan", ctUrl)
+    if (audioUrl) addFileRow("Audio File", audioUrl)
     y+=3; drawLine()
   }
 
