@@ -24,7 +24,7 @@ const questions = [
   { id: 9, text: "Is your body temperature normal?", type: "choice", choices: [{ label: "Normal", value: 0 }, { label: "High / Fever", value: 1 }] },
   { id: 10, text: "What is your respiratory rate? (breaths per minute)", type: "number", placeholder: "e.g. 18", hint: "Normal is 12–20 breaths per minute" },
   { id: 11, text: "What is your heart rate?", type: "choice", choices: [{ label: "Lower than normal", value: 0 }, { label: "Normal", value: 1 }, { label: "Higher than normal", value: 2 }] },
-  { id: 12, text: "What is your oxygen saturation (SpO2)?", type: "number", placeholder: "e.g. 0.95", hint: "Enter as decimal. Normal is above 0.95" },
+  { id: 12, text: "What is your oxygen saturation (SpO2)?", type: "number", placeholder: "e.g. 95", hint: "Enter as percentage. Normal is above 95%" },
   { id: 13, text: "Do you produce sputum (mucus) when coughing?", type: "choice", choices: [{ label: "None", value: 0 }, { label: "Normal amount", value: 1 }, { label: "Excessive", value: 2 }] },
 ]
 
@@ -143,6 +143,8 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
   const [input, setInput] = useState("")
   const [questionIndex, setQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<number[]>([])
+  const [bmiHeightCm, setBmiHeightCm] = useState<string>("")
+  const [bmiWeightKg, setBmiWeightKg] = useState<string>("")
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const currentQuestion = questions[questionIndex]
@@ -175,9 +177,21 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
 
   const handleNumberSubmit = () => {
     if (!input.trim()) return
-    const value = parseFloat(input)
+    const raw = input.trim()
+    const value = parseFloat(raw)
     if (isNaN(value)) { alert("Please enter a valid number"); return }
-    handleAnswer(value, input)
+
+    // Backend expects SpO2 as a decimal (e.g. 0.95). UI asks for percentage (e.g. 95).
+    if (currentQuestion.id === 12) {
+      const inputAsPercentage = value > 1
+      const decimalValue = inputAsPercentage ? value / 100 : value
+      const safeDecimalValue = Math.max(0, Math.min(1, decimalValue))
+      const displayText = inputAsPercentage ? `${value}%` : `${(value * 100).toFixed(0)}%`
+      handleAnswer(safeDecimalValue, displayText)
+      return
+    }
+
+    handleAnswer(value, raw)
   }
 
   return (
@@ -218,22 +232,119 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
               </div>
             )}
             {currentQuestion.type === "choice" && (
-              <div className="flex flex-wrap gap-2">
-                {(currentQuestion as any).choices.map((choice: any) => (
-                  <button key={choice.value} onClick={() => handleAnswer(choice.value, choice.label)}
-                    className="flex-1 min-w-[120px] py-3 px-4 rounded-xl border-2 border-primary text-primary font-medium hover:bg-primary hover:text-primary-foreground transition-colors">
-                    {choice.label}
-                  </button>
-                ))}
-              </div>
+              currentQuestion.id === 2 ? (
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="sm:w-64 rounded-xl border border-border bg-card p-4">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">
+                      BMI Calculator
+                    </p>
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Height (cm)</label>
+                        <input
+                          value={bmiHeightCm}
+                          onChange={e => setBmiHeightCm(e.target.value)}
+                          type="number"
+                          step="0.1"
+                          min="1"
+                          placeholder="e.g. 170"
+                          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Weight (kg)</label>
+                        <input
+                          value={bmiWeightKg}
+                          onChange={e => setBmiWeightKg(e.target.value)}
+                          type="number"
+                          step="0.1"
+                          min="1"
+                          placeholder="e.g. 70"
+                          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const h = parseFloat(bmiHeightCm)
+                      const w = parseFloat(bmiWeightKg)
+                      if (!bmiHeightCm || !bmiWeightKg || Number.isNaN(h) || Number.isNaN(w) || h <= 0 || w <= 0) {
+                        return (
+                          <p className="text-xs text-muted-foreground mt-3">
+                            Enter height and weight to calculate.
+                          </p>
+                        )
+                      }
+
+                      const heightM = h / 100
+                      const bmi = w / (heightM * heightM)
+                      const category =
+                        bmi < 21 ? { value: 0, label: "Below 21" } :
+                        bmi <= 25 ? { value: 1, label: "21 – 25" } :
+                        { value: 2, label: "Above 25" }
+
+                      return (
+                        <div className="mt-3 space-y-3">
+                          <div className="rounded-xl bg-muted/30 border border-muted/60 p-3">
+                            <p className="text-xs text-muted-foreground">Your BMI</p>
+                            <p className="text-lg font-bold text-foreground">{bmi.toFixed(1)}</p>
+                            <p className="text-sm font-medium text-primary">Category: {category.label}</p>
+                          </div>
+                          <button
+                            onClick={() => handleAnswer(category.value, category.label)}
+                            className="w-full rounded-xl bg-primary text-primary-foreground py-3 text-sm font-medium hover:bg-primary/90 transition-colors"
+                          >
+                            Use BMI Category
+                          </button>
+                        </div>
+                      )
+                    })()}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 flex-1">
+                    {(currentQuestion as any).choices.map((choice: any) => (
+                      <button
+                        key={choice.value}
+                        onClick={() => handleAnswer(choice.value, choice.label)}
+                        className="flex-1 min-w-[120px] py-3 px-4 rounded-xl border-2 border-primary text-primary font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        {choice.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {(currentQuestion as any).choices.map((choice: any) => (
+                    <button
+                      key={choice.value}
+                      onClick={() => handleAnswer(choice.value, choice.label)}
+                      className="flex-1 min-w-[120px] py-3 px-4 rounded-xl border-2 border-primary text-primary font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
+                    >
+                      {choice.label}
+                    </button>
+                  ))}
+                </div>
+              )
             )}
             {currentQuestion.type === "number" && (
               <div className="space-y-2">
                 {(currentQuestion as any).hint && <p className="text-xs text-muted-foreground px-1">💡 {(currentQuestion as any).hint}</p>}
                 <div className="flex gap-3">
-                  <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && handleNumberSubmit()}
-                    placeholder={(currentQuestion as any).placeholder} type="number" step="any"
-                    className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                  <div className="flex flex-1 items-center gap-2">
+                    <input
+                      value={input}
+                      onChange={e => setInput(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && handleNumberSubmit()}
+                      placeholder={(currentQuestion as any).placeholder}
+                      type="number"
+                      step="any"
+                      className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                    {currentQuestion.id === 12 && (
+                      <span className="text-sm text-muted-foreground select-none">%</span>
+                    )}
+                  </div>
                   <button onClick={handleNumberSubmit} disabled={!input.trim()}
                     className={cn("flex h-12 w-12 items-center justify-center rounded-xl transition-all",
                       input.trim() ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground cursor-not-allowed")}>
