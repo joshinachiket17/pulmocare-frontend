@@ -205,11 +205,19 @@ async function generateAndDownloadPDF(record: any) {
       doc.text(`${label}:`, margin, y)
       doc.setFont("helvetica","normal"); doc.setTextColor(37,99,235)
       const shortUrl = url.length>65 ? url.substring(0,65)+"..." : url
-      doc.textWithLink(shortUrl, margin+32, y, {url}); y+=8
+      const x = margin + 32
+      doc.text(shortUrl, x, y)
+      // Make the visible text area clickable (jsPDF@4.x is more reliable with doc.link).
+      const textW = doc.getTextWidth(shortUrl)
+      doc.link(x, y - 3.5, textW, 4.5, { url })
+      y += 8
     }
     if (record.xray_url)  addFileRow("X-Ray Image", record.xray_url)
     if (record.ct_url)    addFileRow("CT Scan",     record.ct_url)
-    if (record.audio_url) addFileRow("Audio File", `${record.audio_url}.wav`)
+    if (record.audio_url) {
+      const audioFullUrl = record.audio_url.endsWith(".wav") ? record.audio_url : `${record.audio_url}.wav`
+      addFileRow("Audio File", audioFullUrl)
+    }
     y+=3; drawLine()
   }
 
