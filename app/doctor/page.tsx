@@ -197,34 +197,40 @@ async function generateAndDownloadPDF(record: any) {
   drawLine()
 
   // ── Files ──────────────────────────────────────────────────────────────────
-  const xrayUrl: string | undefined = record.xray_url || record.uploaded_files?.xray_url
-  const ctUrl: string | undefined = record.ct_url || record.uploaded_files?.ct_url
-  const audioUrlBase: string | undefined =
-    record.audio_url || record.uploaded_files?.audio_url
-  const audioUrl: string | undefined = audioUrlBase
-    ? (audioUrlBase.endsWith(".wav") ? audioUrlBase : `${audioUrlBase}.wav`)
-    : undefined
+  const xrayUrl: string | undefined =
+  record.xray_url ||
+  record.uploaded_files?.xray_url ||
+  undefined
 
-  if (xrayUrl || ctUrl || audioUrl) {
-    sectionTitle("Uploaded Files")
-    const addFileRow = (label: string, url: string) => {
-      checkPage(10)
-      doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(71,85,105)
-      doc.text(`${label}:`, margin, y)
-      doc.setFont("helvetica","normal"); doc.setTextColor(37,99,235)
-      const shortUrl = url.length>65 ? url.substring(0,65)+"..." : url
-      const x = margin + 32
-      doc.text(shortUrl, x, y)
-      // Make the visible text area clickable (jsPDF@4.x is more reliable with doc.link).
-      const textW = doc.getTextWidth(shortUrl)
-      doc.link(x, y - 3.5, textW, 4.5, { url })
-      y += 8
-    }
-    if (xrayUrl) addFileRow("X-Ray Image", xrayUrl)
-    if (ctUrl) addFileRow("CT Scan", ctUrl)
-    if (audioUrl) addFileRow("Audio File", audioUrl)
-    y+=3; drawLine()
+const ctUrl: string | undefined =
+  record.ct_url ||
+  record.uploaded_files?.ct_url ||
+  undefined
+
+const audioUrl: string | undefined =
+  record.audio_url ||
+  record.uploaded_files?.audio_url ||
+  undefined
+
+if (xrayUrl || ctUrl || audioUrl) {
+  sectionTitle("Uploaded Files")
+  const addFileRow = (label: string, url: string) => {
+    checkPage(10)
+    doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(71,85,105)
+    doc.text(`${label}:`, margin, y)
+    doc.setFont("helvetica","normal"); doc.setTextColor(37,99,235)
+    const shortUrl = url.length>65 ? url.substring(0,65)+"..." : url
+    const x = margin + 32
+    doc.text(shortUrl, x, y)
+    const textW = doc.getTextWidth(shortUrl)
+    doc.link(x, y - 3.5, textW, 4.5, { url })
+    y += 8
   }
+  if (xrayUrl) addFileRow("X-Ray Image", xrayUrl)
+  if (ctUrl)   addFileRow("CT Scan", ctUrl)
+  if (audioUrl) addFileRow("Lung Audio", audioUrl)
+  y+=3; drawLine()
+}
 
   // ── Disclaimer ─────────────────────────────────────────────────────────────
   checkPage(22)
