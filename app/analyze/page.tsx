@@ -24,7 +24,7 @@ const questions = [
   { id: 9, text: "Is your body temperature normal?", type: "choice", choices: [{ label: "Normal", value: 0 }, { label: "High / Fever", value: 1 }] },
   { id: 10, text: "What is your respiratory rate? (breaths per minute)", type: "number", placeholder: "e.g. 18", hint: "Normal is 12–20 breaths per minute" },
   { id: 11, text: "What is your heart rate?", type: "choice", choices: [{ label: "Lower than normal", value: 0 }, { label: "Normal", value: 1 }, { label: "Higher than normal", value: 2 }] },
-  { id: 12, text: "What is your oxygen saturation (SpO2)?", type: "number", placeholder: "e.g. 95", hint: "Enter as percentage. Normal is above 95%" },
+  { id: 12, text: "What is your oxygen saturation (SpO2)?", type: "number", placeholder: "e.g. 95", hint: "Enter as percentage. Normal is above 95% — or skip if unknown" },
   { id: 13, text: "Do you produce sputum (mucus) when coughing?", type: "choice", choices: [{ label: "None", value: 0 }, { label: "Normal amount", value: 1 }, { label: "Excessive", value: 2 }] },
 ]
 
@@ -351,6 +351,15 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                     <Send className="h-5 w-5" />
                   </button>
                 </div>
+                {/* Skip button — only shown for SpO2 (question 12) */}
+                {currentQuestion.id === 12 && (
+                  <button
+                    onClick={() => handleAnswer(0, "Skipped")}
+                    className="w-full py-2.5 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    Skip — I don&apos;t know my SpO2
+                  </button>
+                )}
               </div>
             )}
           </div>
