@@ -28,7 +28,6 @@ const questions = [
   { id: 13, text: "Do you produce sputum (mucus) when coughing?", type: "choice", choices: [{ label: "None", value: 0 }, { label: "Normal amount", value: 1 }, { label: "Excessive", value: 2 }] },
 ]
 
-// ── Steps now include Patient Info as step 0 ──────────────────────────────────
 const steps = [
   { id: 1, label: "Patient Info", icon: UserCircle },
   { id: 2, label: "Questionnaire", icon: Activity },
@@ -68,7 +67,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
   )
 }
 
-// ── Step 1: Patient Info (optional) ──────────────────────────────────────────
+// ── Step 1: Patient Info ──────────────────────────────────────────────────────
 function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: string; phone: string }) => void }) {
   const [name, setName]   = useState("")
   const [age, setAge]     = useState("")
@@ -101,7 +100,7 @@ function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: strin
               onChange={e => setAge(e.target.value)}
               placeholder="e.g. 45"
               type="number"
-              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
           <div className="space-y-1.5">
@@ -153,6 +152,19 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // Go back to the previous question and strip the last user+bot message pair
+  const handleBack = () => {
+    if (questionIndex === 0) return
+    const prevIndex = questionIndex - 1
+    // Remove the last bot question + user answer (2 messages) from the tail
+    setMessages(prev => prev.slice(0, -2))
+    setAnswers(prev => prev.slice(0, -1))
+    setQuestionIndex(prevIndex)
+    setInput("")
+    setBmiHeightCm("")
+    setBmiWeightKg("")
+  }
 
   const handleAnswer = (value: number, displayText?: string) => {
     const updatedAnswers = [...answers, value]
@@ -224,13 +236,26 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
         </div>
 
         {questionIndex < questions.length && (
-          <div className="border-t border-border p-4">
+          <div className="border-t border-border p-4 space-y-3">
+
+            {/* Back button — shown from question 2 onwards */}
+            {questionIndex > 0 && (
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowRight className="h-3.5 w-3.5 rotate-180" />
+                Edit previous answer
+              </button>
+            )}
+
             {currentQuestion.type === "yesno" && (
               <div className="flex gap-3">
                 <button onClick={() => handleAnswer(1, "Yes")} className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold transition-colors">✅ Yes</button>
                 <button onClick={() => handleAnswer(0, "No")} className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors">❌ No</button>
               </div>
             )}
+
             {currentQuestion.type === "choice" && (
               currentQuestion.id === 2 ? (
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -248,7 +273,7 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                           step="0.1"
                           min="1"
                           placeholder="e.g. 170"
-                          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -260,7 +285,7 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                           step="0.1"
                           min="1"
                           placeholder="e.g. 70"
-                          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -327,6 +352,7 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                 </div>
               )
             )}
+
             {currentQuestion.type === "number" && (
               <div className="space-y-2">
                 {(currentQuestion as any).hint && <p className="text-xs text-muted-foreground px-1">💡 {(currentQuestion as any).hint}</p>}
@@ -339,7 +365,7 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                       placeholder={(currentQuestion as any).placeholder}
                       type="number"
                       step="any"
-                      className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     {currentQuestion.id === 12 && (
                       <span className="text-sm text-muted-foreground select-none">%</span>
@@ -362,6 +388,7 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                 )}
               </div>
             )}
+
           </div>
         )}
       </div>
@@ -422,7 +449,6 @@ function UploadStep({
 
   return (
     <div className="space-y-4">
-      {/* Patient info badge if provided */}
       {patientName && (
         <div className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-4 py-3">
           <UserCircle className="h-4 w-4 text-primary" />
@@ -527,7 +553,6 @@ export default function AnalyzePage() {
 
       formData.append("questionnaire", JSON.stringify(questAnswers))
 
-      // Add optional patient info
       if (patientInfo.name)  formData.append("patient_name",  patientInfo.name)
       if (patientInfo.age)   formData.append("patient_age",   patientInfo.age)
       if (patientInfo.phone) formData.append("patient_phone", patientInfo.phone)
