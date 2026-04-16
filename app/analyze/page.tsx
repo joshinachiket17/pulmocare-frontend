@@ -6,32 +6,164 @@ import { Header } from "@/components/header"
 import {
   Activity, Send, Bot, User, Upload, X,
   Mic, Scan, Layers, ArrowRight, Check,
-  FileAudio, ChevronRight, UserCircle
+  FileAudio, ChevronRight, UserCircle,
+  Thermometer, Heart, Shield, Brain
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const questions = [
-  { id: 0, text: "What is your age?", type: "number", placeholder: "e.g. 45", hint: "Enter your age in years" },
-  { id: 1, text: "What is your gender?", type: "choice", choices: [{ label: "Male", value: 1 }, { label: "Female", value: 0 }] },
-  { id: 2, text: "What is your BMI category?", type: "choice", choices: [{ label: "Below 21", value: 0 }, { label: "21 – 25", value: 1 }, { label: "Above 25", value: 2 }] },
-  { id: 3, text: "What is your height in meters?", type: "number", placeholder: "e.g. 1.75", hint: "Enter height in meters" },
-  { id: 4, text: "Have you ever been diagnosed with heart failure?", type: "yesno" },
-  { id: 5, text: "What is your smoking status?", type: "choice", choices: [{ label: "Never smoked", value: 0 }, { label: "Former smoker", value: 1 }, { label: "Current smoker", value: 2 }] },
-  { id: 6, text: "How many pack-years have you smoked?", type: "number", placeholder: "e.g. 10", hint: "Packs per day × years smoked. Enter 0 if non-smoker." },
-  { id: 7, text: "Have you received respiratory disease vaccination?", type: "yesno" },
-  { id: 8, text: "Have you been diagnosed with depression?", type: "yesno" },
-  { id: 9, text: "Is your body temperature normal?", type: "choice", choices: [{ label: "Normal", value: 0 }, { label: "High / Fever", value: 1 }] },
+  { id: 0,  text: "What is your age?", type: "number", placeholder: "e.g. 45", hint: "Enter your age in years" },
+  { id: 1,  text: "What is your gender?", type: "choice", choices: [{ label: "Male", value: 1 }, { label: "Female", value: 0 }] },
+  { id: 2,  text: "What is your BMI category?", type: "choice", choices: [{ label: "Below 21", value: 0 }, { label: "21 – 25", value: 1 }, { label: "Above 25", value: 2 }] },
+  { id: 3,  text: "What is your height in meters?", type: "number", placeholder: "e.g. 1.75", hint: "Enter height in meters" },
+  { id: 4,  text: "Have you ever been diagnosed with heart failure?", type: "yesno" },
+  { id: 5,  text: "What is your smoking status?", type: "choice", choices: [{ label: "Never smoked", value: 0 }, { label: "Former smoker", value: 1 }, { label: "Current smoker", value: 2 }] },
+  { id: 6,  text: "How many pack-years have you smoked?", type: "number", placeholder: "e.g. 10", hint: "Packs per day × years smoked. Enter 0 if non-smoker." },
+  { id: 7,  text: "Have you received a respiratory disease vaccination?", type: "yesno_info", infoType: "vaccination" },
+  { id: 8,  text: "Have you been diagnosed with depression?", type: "yesno_info", infoType: "depression" },
+  { id: 9,  text: "Is your body temperature normal?", type: "choice_info", infoType: "temperature", choices: [{ label: "Normal", value: 0 }, { label: "High / Fever", value: 1 }] },
   { id: 10, text: "What is your respiratory rate? (breaths per minute)", type: "number", placeholder: "e.g. 18", hint: "Normal is 12–20 breaths per minute" },
-  { id: 11, text: "What is your heart rate?", type: "choice", choices: [{ label: "Lower than normal", value: 0 }, { label: "Normal", value: 1 }, { label: "Higher than normal", value: 2 }] },
+  { id: 11, text: "What is your heart rate?", type: "choice_info", infoType: "heartrate", choices: [{ label: "Lower than normal", value: 0 }, { label: "Normal", value: 1 }, { label: "Higher than normal", value: 2 }] },
   { id: 12, text: "What is your oxygen saturation (SpO2)?", type: "number", placeholder: "e.g. 95", hint: "Enter as percentage. Normal is above 95% — or skip if unknown" },
   { id: 13, text: "Do you produce sputum (mucus) when coughing?", type: "choice", choices: [{ label: "None", value: 0 }, { label: "Normal amount", value: 1 }, { label: "Excessive", value: 2 }] },
 ]
 
+// ── Info cards ────────────────────────────────────────────────────────────────
+
+function VaccinationInfoCard() {
+  return (
+    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Shield className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+        <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Respiratory Disease Vaccines</p>
+      </div>
+      <div className="space-y-2">
+        <div className="rounded-lg bg-white dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 p-3">
+          <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-1">PCV20 / PCV15 (Pneumococcal)</p>
+          <p className="text-xs text-muted-foreground">
+            Protects against <span className="font-medium text-foreground">pneumonia, meningitis</span> and bloodstream infections caused by <em>Streptococcus pneumoniae</em>.
+            PCV20 covers 20 strains and is recommended once for adults 65+ or earlier for high-risk individuals.
+            Reduces pneumonia hospitalisation risk by up to <span className="font-medium text-foreground">45%</span>.
+          </p>
+        </div>
+        <div className="rounded-lg bg-white dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 p-3">
+          <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-1">Influenza (Flu) Vaccine</p>
+          <p className="text-xs text-muted-foreground">
+            Annual shot that reduces flu-related <span className="font-medium text-foreground">hospitalisation risk by ~40–60%</span>.
+            Especially critical for COPD and asthma patients — flu can trigger severe exacerbations and secondary bacterial pneumonia.
+          </p>
+        </div>
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 p-3">
+          <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">Why it matters here</p>
+          <p className="text-xs text-muted-foreground">
+            Vaccination history is a key risk modifier. Vaccinated individuals show measurably lower rates of severe respiratory complications,
+            so this helps the model calibrate your <span className="font-medium text-foreground">baseline infection risk</span>.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DepressionInfoCard() {
+  return (
+    <div className="rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Brain className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+        <p className="text-sm font-semibold text-purple-800 dark:text-purple-300">Depression & Lung Health</p>
+      </div>
+      <div className="space-y-2">
+        <div className="rounded-lg bg-white dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/50 p-3">
+          <p className="text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wide mb-1">The Clinical Link</p>
+          <p className="text-xs text-muted-foreground">
+            Depression is clinically linked to chronic lung diseases like <span className="font-medium text-foreground">COPD and asthma</span>.
+            Studies show ~40% of COPD patients have comorbid depression, which worsens breathlessness perception
+            and significantly reduces adherence to inhalers and treatment plans.
+          </p>
+        </div>
+        <div className="rounded-lg bg-white dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/50 p-3">
+          <p className="text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wide mb-1">How it affects this analysis</p>
+          <p className="text-xs text-muted-foreground">
+            Depression can cause <span className="font-medium text-foreground">shallow, irregular breathing patterns</span> and reduce the motivation to seek care early.
+            It is used here as a risk modifier — not as a standalone indicator of lung disease.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TemperatureInfoCard() {
+  return (
+    <div className="rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Thermometer className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+        <p className="text-sm font-semibold text-orange-800 dark:text-orange-300">Body Temperature Reference</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-lg bg-white dark:bg-orange-900/20 border border-green-200 dark:border-green-800/50 p-3 text-center">
+          <p className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wide mb-1">Normal</p>
+          <p className="text-lg font-bold text-foreground">36.1 – 37.2°C</p>
+          <p className="text-xs text-muted-foreground">97.0 – 99.0°F</p>
+          <p className="text-xs text-muted-foreground mt-1">Typical healthy adult range</p>
+        </div>
+        <div className="rounded-lg bg-white dark:bg-orange-900/20 border border-red-200 dark:border-red-800/50 p-3 text-center">
+          <p className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">Fever</p>
+          <p className="text-lg font-bold text-foreground">≥ 38.0°C</p>
+          <p className="text-xs text-muted-foreground">≥ 100.4°F</p>
+          <p className="text-xs text-muted-foreground mt-1">Indicates infection / inflammation</p>
+        </div>
+      </div>
+      <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 p-3">
+        <p className="text-xs text-muted-foreground">
+          Fever alongside cough or breathlessness strongly suggests an <span className="font-medium text-foreground">active respiratory infection</span> such as
+          pneumonia, acute bronchitis, or flu. Select <em>High / Fever</em> if your temperature is — or was recently — above 38°C.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function HeartRateInfoCard() {
+  return (
+    <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Heart className="h-4 w-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+        <p className="text-sm font-semibold text-rose-800 dark:text-rose-300">Heart Rate Reference (beats per minute)</p>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-lg bg-white dark:bg-rose-900/20 border border-blue-200 dark:border-blue-800/50 p-3 text-center">
+          <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">Low</p>
+          <p className="text-base font-bold text-foreground">&lt; 60 bpm</p>
+          <p className="text-xs text-muted-foreground mt-1">Bradycardia — may signal low oxygen delivery or medication effect</p>
+        </div>
+        <div className="rounded-lg bg-white dark:bg-rose-900/20 border border-green-200 dark:border-green-800/50 p-3 text-center">
+          <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wide mb-1">Normal</p>
+          <p className="text-base font-bold text-foreground">60 – 100 bpm</p>
+          <p className="text-xs text-muted-foreground mt-1">Healthy resting range for adults</p>
+        </div>
+        <div className="rounded-lg bg-white dark:bg-rose-900/20 border border-red-200 dark:border-red-800/50 p-3 text-center">
+          <p className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">High</p>
+          <p className="text-base font-bold text-foreground">&gt; 100 bpm</p>
+          <p className="text-xs text-muted-foreground mt-1">Tachycardia — common in infection, fever, or low SpO2</p>
+        </div>
+      </div>
+      <div className="rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 p-3">
+        <p className="text-xs text-muted-foreground">
+          An elevated heart rate alongside respiratory symptoms often means the body is compensating for <span className="font-medium text-foreground">reduced oxygen levels</span>.
+          To check manually — place two fingers on your wrist (radial pulse), count beats for 30 seconds and multiply by 2.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ── Steps ─────────────────────────────────────────────────────────────────────
 const steps = [
-  { id: 1, label: "Patient Info", icon: UserCircle },
+  { id: 1, label: "Patient Info",  icon: UserCircle },
   { id: 2, label: "Questionnaire", icon: Activity },
-  { id: 3, label: "Upload Files", icon: Upload },
+  { id: 3, label: "Upload Files",  icon: Upload },
 ]
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
@@ -40,14 +172,14 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
       {steps.map((step, idx) => {
         const Icon = step.icon
         const isCompleted = currentStep > step.id
-        const isActive = currentStep === step.id
+        const isActive    = currentStep === step.id
         return (
           <div key={step.id} className="flex items-center gap-2">
             <div className={cn(
               "flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all",
               isCompleted ? "bg-primary border-primary text-primary-foreground" :
-              isActive ? "border-primary text-primary" :
-              "border-muted-foreground/30 text-muted-foreground"
+              isActive    ? "border-primary text-primary" :
+                            "border-muted-foreground/30 text-muted-foreground"
             )}>
               {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
             </div>
@@ -69,8 +201,8 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 
 // ── Step 1: Patient Info ──────────────────────────────────────────────────────
 function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: string; phone: string }) => void }) {
-  const [name, setName]   = useState("")
-  const [age, setAge]     = useState("")
+  const [name,  setName]  = useState("")
+  const [age,   setAge]   = useState("")
   const [phone, setPhone] = useState("")
 
   return (
@@ -117,17 +249,10 @@ function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: strin
       </div>
 
       <div className="flex gap-3">
-        <Button
-          variant="outline"
-          onClick={() => onNext({ name: "", age: "", phone: "" })}
-          className="flex-1 h-12 rounded-xl"
-        >
+        <Button variant="outline" onClick={() => onNext({ name: "", age: "", phone: "" })} className="flex-1 h-12 rounded-xl">
           Skip
         </Button>
-        <Button
-          onClick={() => onNext({ name, age, phone })}
-          className="flex-1 h-12 rounded-xl gap-2"
-        >
+        <Button onClick={() => onNext({ name, age, phone })} className="flex-1 h-12 rounded-xl gap-2">
           Continue
           <ArrowRight className="h-4 w-4" />
         </Button>
@@ -138,12 +263,12 @@ function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: strin
 
 // ── Step 2: Questionnaire ─────────────────────────────────────────────────────
 function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => void }) {
-  const [messages, setMessages] = useState([{ from: "bot", text: questions[0].text }])
-  const [input, setInput] = useState("")
+  const [messages,     setMessages]     = useState([{ from: "bot", text: questions[0].text }])
+  const [input,        setInput]        = useState("")
   const [questionIndex, setQuestionIndex] = useState(0)
-  const [answers, setAnswers] = useState<number[]>([])
-  const [bmiHeightCm, setBmiHeightCm] = useState<string>("")
-  const [bmiWeightKg, setBmiWeightKg] = useState<string>("")
+  const [answers,      setAnswers]      = useState<number[]>([])
+  const [bmiHeightCm,  setBmiHeightCm]  = useState<string>("")
+  const [bmiWeightKg,  setBmiWeightKg]  = useState<string>("")
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const currentQuestion = questions[questionIndex]
@@ -153,11 +278,10 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Go back to the previous question and strip the last user+bot message pair
+  // ── Go back one question ──
   const handleBack = () => {
     if (questionIndex === 0) return
     const prevIndex = questionIndex - 1
-    // Remove the last bot question + user answer (2 messages) from the tail
     setMessages(prev => prev.slice(0, -2))
     setAnswers(prev => prev.slice(0, -1))
     setQuestionIndex(prevIndex)
@@ -189,16 +313,15 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
 
   const handleNumberSubmit = () => {
     if (!input.trim()) return
-    const raw = input.trim()
+    const raw   = input.trim()
     const value = parseFloat(raw)
     if (isNaN(value)) { alert("Please enter a valid number"); return }
 
-    // Backend expects SpO2 as a decimal (e.g. 0.95). UI asks for percentage (e.g. 95).
     if (currentQuestion.id === 12) {
       const inputAsPercentage = value > 1
-      const decimalValue = inputAsPercentage ? value / 100 : value
-      const safeDecimalValue = Math.max(0, Math.min(1, decimalValue))
-      const displayText = inputAsPercentage ? `${value}%` : `${(value * 100).toFixed(0)}%`
+      const decimalValue      = inputAsPercentage ? value / 100 : value
+      const safeDecimalValue  = Math.max(0, Math.min(1, decimalValue))
+      const displayText       = inputAsPercentage ? `${value}%` : `${(value * 100).toFixed(0)}%`
       handleAnswer(safeDecimalValue, displayText)
       return
     }
@@ -206,8 +329,43 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
     handleAnswer(value, raw)
   }
 
+  // ── Render the contextual info card ──
+  const renderInfoCard = () => {
+    const infoType = (currentQuestion as any).infoType
+    if (!infoType) return null
+    if (infoType === "vaccination") return <VaccinationInfoCard />
+    if (infoType === "depression")  return <DepressionInfoCard />
+    if (infoType === "temperature") return <TemperatureInfoCard />
+    if (infoType === "heartrate")   return <HeartRateInfoCard />
+    return null
+  }
+
+  // ── Shared Yes/No buttons ──
+  const YesNoButtons = () => (
+    <div className="flex gap-3">
+      <button onClick={() => handleAnswer(1, "Yes")} className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold transition-colors">✅ Yes</button>
+      <button onClick={() => handleAnswer(0, "No")}  className="flex-1 py-3 rounded-xl bg-red-500   hover:bg-red-600   text-white font-semibold transition-colors">❌ No</button>
+    </div>
+  )
+
+  // ── Shared choice buttons ──
+  const ChoiceButtons = ({ choices }: { choices: { label: string; value: number }[] }) => (
+    <div className="flex flex-wrap gap-2">
+      {choices.map(choice => (
+        <button
+          key={choice.value}
+          onClick={() => handleAnswer(choice.value, choice.label)}
+          className="flex-1 min-w-[120px] py-3 px-4 rounded-xl border-2 border-primary text-primary font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
+        >
+          {choice.label}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
     <div className="flex flex-col h-full">
+      {/* Progress bar */}
       <div className="mb-4">
         <div className="flex justify-between text-sm mb-1">
           <span className="text-muted-foreground">Question {Math.min(questionIndex + 1, questions.length)} of {questions.length}</span>
@@ -219,6 +377,7 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
       </div>
 
       <div className="flex-1 rounded-2xl border border-border bg-card overflow-hidden flex flex-col min-h-0">
+        {/* Chat history */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((m, idx) => (
             <div key={idx} className={cn("flex gap-3", m.from === "user" ? "flex-row-reverse" : "flex-row")}>
@@ -235,10 +394,11 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
           <div ref={chatEndRef} />
         </div>
 
+        {/* Input panel */}
         {questionIndex < questions.length && (
           <div className="border-t border-border p-4 space-y-3">
 
-            {/* Back button — shown from question 2 onwards */}
+            {/* Back button */}
             {questionIndex > 0 && (
               <button
                 onClick={handleBack}
@@ -249,30 +409,31 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
               </button>
             )}
 
-            {currentQuestion.type === "yesno" && (
-              <div className="flex gap-3">
-                <button onClick={() => handleAnswer(1, "Yes")} className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold transition-colors">✅ Yes</button>
-                <button onClick={() => handleAnswer(0, "No")} className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors">❌ No</button>
-              </div>
+            {/* Contextual info card */}
+            {renderInfoCard()}
+
+            {/* Answer controls */}
+            {currentQuestion.type === "yesno" && <YesNoButtons />}
+
+            {currentQuestion.type === "yesno_info" && <YesNoButtons />}
+
+            {currentQuestion.type === "choice_info" && (
+              <ChoiceButtons choices={(currentQuestion as any).choices} />
             )}
 
             {currentQuestion.type === "choice" && (
               currentQuestion.id === 2 ? (
+                // BMI question — special layout with calculator
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="sm:w-64 rounded-xl border border-border bg-card p-4">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">
-                      BMI Calculator
-                    </p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">BMI Calculator</p>
                     <div className="space-y-3">
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Height (cm)</label>
                         <input
                           value={bmiHeightCm}
                           onChange={e => setBmiHeightCm(e.target.value)}
-                          type="number"
-                          step="0.1"
-                          min="1"
-                          placeholder="e.g. 170"
+                          type="number" step="0.1" min="1" placeholder="e.g. 170"
                           className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
@@ -281,33 +442,20 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                         <input
                           value={bmiWeightKg}
                           onChange={e => setBmiWeightKg(e.target.value)}
-                          type="number"
-                          step="0.1"
-                          min="1"
-                          placeholder="e.g. 70"
+                          type="number" step="0.1" min="1" placeholder="e.g. 70"
                           className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
-
                     {(() => {
                       const h = parseFloat(bmiHeightCm)
                       const w = parseFloat(bmiWeightKg)
                       if (!bmiHeightCm || !bmiWeightKg || Number.isNaN(h) || Number.isNaN(w) || h <= 0 || w <= 0) {
-                        return (
-                          <p className="text-xs text-muted-foreground mt-3">
-                            Enter height and weight to calculate.
-                          </p>
-                        )
+                        return <p className="text-xs text-muted-foreground mt-3">Enter height and weight to calculate.</p>
                       }
-
-                      const heightM = h / 100
-                      const bmi = w / (heightM * heightM)
-                      const category =
-                        bmi < 21 ? { value: 0, label: "Below 21" } :
-                        bmi <= 25 ? { value: 1, label: "21 – 25" } :
-                        { value: 2, label: "Above 25" }
-
+                      const heightM  = h / 100
+                      const bmi      = w / (heightM * heightM)
+                      const category = bmi < 21 ? { value: 0, label: "Below 21" } : bmi <= 25 ? { value: 1, label: "21 – 25" } : { value: 2, label: "Above 25" }
                       return (
                         <div className="mt-3 space-y-3">
                           <div className="rounded-xl bg-muted/30 border border-muted/60 p-3">
@@ -325,7 +473,6 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                       )
                     })()}
                   </div>
-
                   <div className="flex flex-wrap gap-2 flex-1">
                     {(currentQuestion as any).choices.map((choice: any) => (
                       <button
@@ -339,23 +486,15 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {(currentQuestion as any).choices.map((choice: any) => (
-                    <button
-                      key={choice.value}
-                      onClick={() => handleAnswer(choice.value, choice.label)}
-                      className="flex-1 min-w-[120px] py-3 px-4 rounded-xl border-2 border-primary text-primary font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-                    >
-                      {choice.label}
-                    </button>
-                  ))}
-                </div>
+                <ChoiceButtons choices={(currentQuestion as any).choices} />
               )
             )}
 
             {currentQuestion.type === "number" && (
               <div className="space-y-2">
-                {(currentQuestion as any).hint && <p className="text-xs text-muted-foreground px-1">💡 {(currentQuestion as any).hint}</p>}
+                {(currentQuestion as any).hint && (
+                  <p className="text-xs text-muted-foreground px-1">💡 {(currentQuestion as any).hint}</p>
+                )}
                 <div className="flex gap-3">
                   <div className="flex flex-1 items-center gap-2">
                     <input
@@ -371,13 +510,15 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                       <span className="text-sm text-muted-foreground select-none">%</span>
                     )}
                   </div>
-                  <button onClick={handleNumberSubmit} disabled={!input.trim()}
+                  <button
+                    onClick={handleNumberSubmit}
+                    disabled={!input.trim()}
                     className={cn("flex h-12 w-12 items-center justify-center rounded-xl transition-all",
-                      input.trim() ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground cursor-not-allowed")}>
+                      input.trim() ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground cursor-not-allowed")}
+                  >
                     <Send className="h-5 w-5" />
                   </button>
                 </div>
-                {/* Skip button — only shown for SpO2 (question 12) */}
                 {currentQuestion.id === 12 && (
                   <button
                     onClick={() => handleAnswer(0, "Skipped")}
@@ -398,16 +539,14 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
 
 // ── Step 3: Upload Files ──────────────────────────────────────────────────────
 function UploadStep({
-  onAnalyze,
-  analyzing,
-  patientName
+  onAnalyze, analyzing, patientName
 }: {
   onAnalyze: (files: { xray: File | null, ct: File | null, audio: File | null }) => void
   analyzing: boolean
   patientName: string
 }) {
-  const [xray, setXray]   = useState<File | null>(null)
-  const [ct, setCt]       = useState<File | null>(null)
+  const [xray,  setXray]  = useState<File | null>(null)
+  const [ct,    setCt]    = useState<File | null>(null)
   const [audio, setAudio] = useState<File | null>(null)
   const xrayRef  = useRef<HTMLInputElement>(null)
   const ctRef    = useRef<HTMLInputElement>(null)
@@ -464,15 +603,14 @@ function UploadStep({
       </div>
 
       <FileUploadBox
-        label="Chest X-ray" icon={Scan} color="text-emerald-600 dark:text-emerald-400"
-        bgColor="bg-emerald-500/10" file={xray} onFile={setXray} inputRef={xrayRef}
-        accept="image/*" hint="Optional — JPG, PNG"
+        label="Chest X-ray" icon={Scan}
+        color="text-emerald-600 dark:text-emerald-400" bgColor="bg-emerald-500/10"
+        file={xray} onFile={setXray} inputRef={xrayRef} accept="image/*" hint="Optional — JPG, PNG"
       />
-
       <FileUploadBox
-        label="CT Scan" icon={Layers} color="text-amber-600 dark:text-amber-400"
-        bgColor="bg-amber-500/10" file={ct} onFile={setCt} inputRef={ctRef}
-        accept="image/*" hint="Optional — JPG, PNG"
+        label="CT Scan" icon={Layers}
+        color="text-amber-600 dark:text-amber-400" bgColor="bg-amber-500/10"
+        file={ct} onFile={setCt} inputRef={ctRef} accept="image/*" hint="Optional — JPG, PNG"
       />
 
       <div className="rounded-2xl border border-border bg-card p-5">
@@ -528,10 +666,10 @@ function UploadStep({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AnalyzePage() {
-  const [step, setStep]               = useState(1)
-  const [patientInfo, setPatientInfo] = useState({ name: "", age: "", phone: "" })
+  const [step,         setStep]         = useState(1)
+  const [patientInfo,  setPatientInfo]  = useState({ name: "", age: "", phone: "" })
   const [questAnswers, setQuestAnswers] = useState<number[]>([])
-  const [analyzing, setAnalyzing]     = useState(false)
+  const [analyzing,    setAnalyzing]    = useState(false)
   const router = useRouter()
 
   const handlePatientInfo = (info: { name: string; age: string; phone: string }) => {
@@ -546,22 +684,19 @@ export default function AnalyzePage() {
 
   const handleAnalyze = async ({ xray, ct, audio }: { xray: File | null, ct: File | null, audio: File | null }) => {
     setAnalyzing(true)
-
     try {
-      const token = localStorage.getItem("token")
+      const token    = localStorage.getItem("token")
       const formData = new FormData()
 
       formData.append("questionnaire", JSON.stringify(questAnswers))
-
       if (patientInfo.name)  formData.append("patient_name",  patientInfo.name)
       if (patientInfo.age)   formData.append("patient_age",   patientInfo.age)
       if (patientInfo.phone) formData.append("patient_phone", patientInfo.phone)
-
-      if (xray)  formData.append("xray", xray)
-      if (ct)    formData.append("ct", ct)
+      if (xray)  formData.append("xray",  xray)
+      if (ct)    formData.append("ct",    ct)
       if (audio) formData.append("audio", audio)
 
-      const res = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/predict/", {
+      const res  = await fetch("https://nachiket-2004-pulmocare-backend.hf.space/api/predict/", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -577,7 +712,6 @@ export default function AnalyzePage() {
     } catch {
       alert("Something went wrong. Please try again.")
     }
-
     setAnalyzing(false)
   }
 
@@ -589,9 +723,7 @@ export default function AnalyzePage() {
           <h1 className="text-2xl font-bold text-foreground mb-1">AI Lung Analysis</h1>
           <p className="text-sm text-muted-foreground">Fill patient info, complete questionnaire then optionally upload scans</p>
         </div>
-
         <StepIndicator currentStep={step} />
-
         <div className="flex-1">
           {step === 1 && <PatientInfoStep onNext={handlePatientInfo} />}
           {step === 2 && <QuestionnaireStep onComplete={handleQuestionnaireComplete} />}
