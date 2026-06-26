@@ -7,16 +7,17 @@ import {
   Activity, Send, Bot, User, Upload, X,
   Mic, Scan, Layers, ArrowRight, Check,
   FileAudio, ChevronRight, UserCircle,
-  Thermometer, Heart, Shield, Brain
+  Thermometer, Heart, Shield, Brain,
+  AlertCircle, Info, ZoomIn, RotateCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const questions = [
-  { id: 0,  text: "What is your age?", type: "number", placeholder: "e.g. 45", hint: "Enter your age in years" },
+  { id: 0,  text: "What is your age?", type: "number", placeholder: "e.g. 45", hint: "Enter your age in years (1–120)" },
   { id: 1,  text: "What is your gender?", type: "choice", choices: [{ label: "Male", value: 1 }, { label: "Female", value: 0 }] },
   { id: 2,  text: "What is your BMI category?", type: "choice", choices: [{ label: "Below 21", value: 0 }, { label: "21 – 25", value: 1 }, { label: "Above 25", value: 2 }] },
-  { id: 3,  text: "What is your height in meters?", type: "number", placeholder: "e.g. 1.75", hint: "Enter height in meters" },
+  { id: 3,  text: "What is your height in meters?", type: "number", placeholder: "e.g. 1.75", hint: "Enter height in meters (0.5–2.5)" },
   { id: 4,  text: "Have you ever been diagnosed with heart failure?", type: "yesno" },
   { id: 5,  text: "What is your smoking status?", type: "choice", choices: [{ label: "Never smoked", value: 0 }, { label: "Former smoker", value: 1 }, { label: "Current smoker", value: 2 }] },
   { id: 6,  text: "How many pack-years have you smoked?", type: "number", placeholder: "e.g. 10", hint: "Packs per day × years smoked. Enter 0 if non-smoker." },
@@ -28,6 +29,64 @@ const questions = [
   { id: 12, text: "What is your oxygen saturation (SpO2)?", type: "number", placeholder: "e.g. 95", hint: "Enter as percentage. Normal is above 95% — or skip if unknown" },
   { id: 13, text: "Do you produce sputum (mucus) when coughing?", type: "choice", choices: [{ label: "None", value: 0 }, { label: "Normal amount", value: 1 }, { label: "Excessive", value: 2 }] },
 ]
+
+// ── Validation helpers ────────────────────────────────────────────────────────
+
+function validateAge(value: string): string | null {
+  if (!value.trim()) return "Age is required"
+  const n = Number(value)
+  if (!Number.isInteger(n) || isNaN(n)) return "Age must be a whole number"
+  if (n < 1 || n > 120) return "Age must be between 1 and 120"
+  return null
+}
+
+function validatePhone(value: string): string | null {
+  if (!value.trim()) return null // optional
+  const digits = value.replace(/\D/g, "")
+  if (digits.length !== 10) return "Phone must be exactly 10 digits"
+  if (!/^[6-9]/.test(digits)) return "Enter a valid Indian mobile number (starts with 6–9)"
+  return null
+}
+
+function validateQuestionnaireAge(value: string): string | null {
+  if (!value.trim()) return "Please enter your age"
+  const n = Number(value)
+  if (isNaN(n) || !Number.isInteger(Number(value))) return "Age must be a whole number"
+  if (n < 1 || n > 120) return "Age must be between 1 and 120"
+  return null
+}
+
+function validateHeight(value: string): string | null {
+  if (!value.trim()) return "Please enter your height"
+  const n = parseFloat(value)
+  if (isNaN(n)) return "Enter a valid number"
+  if (n < 0.5 || n > 2.5) return "Height must be between 0.5 m and 2.5 m"
+  return null
+}
+
+function validateRespiratoryRate(value: string): string | null {
+  if (!value.trim()) return "Please enter respiratory rate"
+  const n = Number(value)
+  if (isNaN(n) || n < 1 || n > 60) return "Respiratory rate must be between 1 and 60 breaths/min"
+  return null
+}
+
+function validatePackYears(value: string): string | null {
+  if (!value.trim()) return "Enter 0 if non-smoker"
+  const n = parseFloat(value)
+  if (isNaN(n) || n < 0 || n > 300) return "Pack-years must be between 0 and 300"
+  return null
+}
+
+// Per-question validation
+function validateNumberQuestion(id: number, value: string): string | null {
+  if (id === 0)  return validateQuestionnaireAge(value)
+  if (id === 3)  return validateHeight(value)
+  if (id === 6)  return validatePackYears(value)
+  if (id === 10) return validateRespiratoryRate(value)
+  if (id === 12) return null // SpO2 is skippable
+  return null
+}
 
 // ── Info cards ────────────────────────────────────────────────────────────────
 
@@ -159,6 +218,124 @@ function HeartRateInfoCard() {
   )
 }
 
+// ── Inline error message ──────────────────────────────────────────────────────
+function FieldError({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-1.5 mt-1">
+      <AlertCircle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+      <p className="text-xs text-destructive">{message}</p>
+    </div>
+  )
+}
+
+// ── X-ray / CT upload instructions card ──────────────────────────────────────
+function ScanInstructionsCard({ type }: { type: "xray" | "ct" }) {
+  const isXray = type === "xray"
+  return (
+    <div className={cn(
+      "rounded-xl border p-4 space-y-3 mt-3",
+      isXray
+        ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800"
+        : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
+    )}>
+      <div className="flex items-center gap-2">
+        <Info className={cn("h-4 w-4 flex-shrink-0", isXray ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400")} />
+        <p className={cn("text-sm font-semibold", isXray ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300")}>
+          How to upload a {isXray ? "Chest X-ray" : "CT Scan"}
+        </p>
+      </div>
+
+      {/* Sample image placeholder (SVG representation) */}
+      <div className="rounded-lg overflow-hidden border border-border bg-black flex items-center justify-center" style={{ height: 160 }}>
+        {isXray ? (
+          // Simplified X-ray silhouette SVG
+          <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+            <rect width="240" height="160" fill="#111" />
+            {/* Ribcage outline */}
+            <ellipse cx="120" cy="80" rx="70" ry="60" fill="none" stroke="#e5e7eb" strokeWidth="1.5" opacity="0.6" />
+            {/* Ribs */}
+            {[40,55,70,85,100,115].map((y, i) => (
+              <g key={i}>
+                <path d={`M 60 ${y} Q 50 ${y+8} 55 ${y+18}`} fill="none" stroke="#d1d5db" strokeWidth="1.2" />
+                <path d={`M 180 ${y} Q 190 ${y+8} 185 ${y+18}`} fill="none" stroke="#d1d5db" strokeWidth="1.2" />
+              </g>
+            ))}
+            {/* Spine */}
+            <rect x="116" y="20" width="8" height="120" rx="4" fill="#9ca3af" opacity="0.6" />
+            {/* Lungs */}
+            <ellipse cx="90" cy="80" rx="30" ry="45" fill="#1f2937" stroke="#6b7280" strokeWidth="1" />
+            <ellipse cx="150" cy="80" rx="30" ry="45" fill="#1f2937" stroke="#6b7280" strokeWidth="1" />
+            {/* Heart shadow */}
+            <ellipse cx="110" cy="90" rx="18" ry="22" fill="#374151" opacity="0.8" />
+            {/* Labels */}
+            <text x="120" y="152" textAnchor="middle" fill="#6b7280" fontSize="9" fontFamily="sans-serif">Sample Chest X-ray — Posterior-Anterior (PA) View</text>
+          </svg>
+        ) : (
+          // Simplified CT scan cross-section SVG
+          <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+            <rect width="240" height="160" fill="#111" />
+            {/* Outer body */}
+            <ellipse cx="120" cy="80" rx="85" ry="68" fill="#1c1c1c" stroke="#4b5563" strokeWidth="1.5" />
+            {/* Left lung */}
+            <ellipse cx="85" cy="75" rx="32" ry="38" fill="#0f172a" stroke="#374151" strokeWidth="1" />
+            {/* Right lung */}
+            <ellipse cx="155" cy="75" rx="32" ry="38" fill="#0f172a" stroke="#374151" strokeWidth="1" />
+            {/* Heart */}
+            <ellipse cx="112" cy="85" rx="20" ry="24" fill="#292524" stroke="#57534e" strokeWidth="1" />
+            {/* Spine */}
+            <circle cx="120" cy="130" r="14" fill="#1e293b" stroke="#64748b" strokeWidth="1" />
+            <circle cx="120" cy="130" r="6" fill="#334155" />
+            {/* Aorta */}
+            <circle cx="130" cy="88" r="5" fill="#1e293b" stroke="#6b7280" strokeWidth="1" />
+            {/* Pulmonary vessels */}
+            <circle cx="95" cy="80" r="3" fill="#374151" stroke="#6b7280" strokeWidth="0.8" />
+            <circle cx="145" cy="80" r="3" fill="#374151" stroke="#6b7280" strokeWidth="0.8" />
+            {/* Labels */}
+            <text x="120" y="152" textAnchor="middle" fill="#6b7280" fontSize="9" fontFamily="sans-serif">Sample CT Scan — Axial Cross-section View</text>
+          </svg>
+        )}
+      </div>
+
+      {/* Instructions list */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Upload checklist</p>
+        <ul className="space-y-1.5">
+          {(isXray ? [
+            { ok: true,  text: "Use the PA (Posterior-Anterior / front-facing) view if available — the standard upright chest X-ray" },
+            { ok: true,  text: "Image must show both lungs clearly, from the apex (top) to the costophrenic angles (bottom corners)" },
+            { ok: true,  text: "Accepted formats: JPG or PNG — export from your DICOM viewer if your hospital gave you a disc" },
+            { ok: false, text: "Do not upload lateral (side) views or partial scans — the model is trained on PA views only" },
+            { ok: false, text: "Avoid images with large watermarks, rulers, or labels covering the lung fields" },
+          ] : [
+            { ok: true,  text: "Upload a single representative axial (cross-section / top-down) slice — ideally at the level of the carina or mid-lung" },
+            { ok: true,  text: "Accepted formats: JPG or PNG — export the image from your DICOM viewer or hospital disc" },
+            { ok: true,  text: "Lung-window preset is preferred (shows lung detail, not bone or mediastinum window)" },
+            { ok: false, text: "Do not upload coronal or sagittal reconstructions — axial slices only" },
+            { ok: false, text: "Avoid colour-mapped or 3D-rendered CT images — greyscale axial slices only" },
+          ]).map((item, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <span className={cn("mt-0.5 flex-shrink-0 text-base leading-none", item.ok ? "text-green-500" : "text-red-500")}>
+                {item.ok ? "✓" : "✗"}
+              </span>
+              <span className="text-xs text-muted-foreground">{item.text}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="rounded-lg bg-white/60 dark:bg-white/5 border border-border p-3">
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">💡 Tip: </span>
+          {isXray
+            ? "Most diagnostic centres provide a digital copy (CD/pen drive). Open it with any DICOM viewer (e.g. RadiAnt, MicroDicom) and export as PNG."
+            : "Ask your radiologist for the \"lung window\" images in JPG/PNG format, or export the axial series from your DICOM viewer."
+          }
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ── Steps ─────────────────────────────────────────────────────────────────────
 const steps = [
   { id: 1, label: "Patient Info",  icon: UserCircle },
@@ -201,9 +378,34 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 
 // ── Step 1: Patient Info ──────────────────────────────────────────────────────
 function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: string; phone: string }) => void }) {
-  const [name,  setName]  = useState("")
-  const [age,   setAge]   = useState("")
-  const [phone, setPhone] = useState("")
+  const [name,       setName]       = useState("")
+  const [age,        setAge]        = useState("")
+  const [phone,      setPhone]      = useState("")
+  const [ageError,   setAgeError]   = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
+
+  const handleAgeChange = (v: string) => {
+    setAge(v)
+    setAgeError(validateAge(v) )
+  }
+
+  const handlePhoneChange = (v: string) => {
+    // Allow only digits while typing
+    const digits = v.replace(/\D/g, "").slice(0, 10)
+    setPhone(digits)
+    setPhoneError(validatePhone(digits))
+  }
+
+  const handleContinue = () => {
+    const ae = age.trim() ? validateAge(age) : null   // age is optional here too
+    const pe = validatePhone(phone)
+    setAgeError(ae)
+    setPhoneError(pe)
+    if (ae || pe) return
+    onNext({ name, age, phone })
+  }
+
+  const handleSkip = () => onNext({ name: "", age: "", phone: "" })
 
   return (
     <div className="space-y-6">
@@ -215,6 +417,7 @@ function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: strin
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+        {/* Name */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">Patient Name</label>
           <input
@@ -224,35 +427,62 @@ function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: strin
             className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </div>
+
         <div className="grid grid-cols-2 gap-4">
+          {/* Age */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Age</label>
             <input
               value={age}
-              onChange={e => setAge(e.target.value)}
+              onChange={e => handleAgeChange(e.target.value)}
               placeholder="e.g. 45"
               type="number"
-              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              min={1}
+              max={120}
+              className={cn(
+                "w-full rounded-xl border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                ageError ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
+              )}
             />
+            {ageError && <FieldError message={ageError} />}
+            {!ageError && age && (
+              <p className="text-xs text-muted-foreground">Age: {age} years</p>
+            )}
           </div>
+
+          {/* Phone */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Phone Number</label>
             <input
               value={phone}
-              onChange={e => setPhone(e.target.value)}
+              onChange={e => handlePhoneChange(e.target.value)}
               placeholder="e.g. 9876543210"
               type="tel"
-              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              inputMode="numeric"
+              maxLength={10}
+              className={cn(
+                "w-full rounded-xl border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20",
+                phoneError ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
+              )}
             />
+            {phoneError && <FieldError message={phoneError} />}
+            {!phoneError && phone.length === 10 && (
+              <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                <Check className="h-3 w-3" /> Valid mobile number
+              </p>
+            )}
+            {!phoneError && phone.length > 0 && phone.length < 10 && (
+              <p className="text-xs text-muted-foreground">{10 - phone.length} more digit{10 - phone.length !== 1 ? "s" : ""} needed</p>
+            )}
           </div>
         </div>
       </div>
 
       <div className="flex gap-3">
-        <Button variant="outline" onClick={() => onNext({ name: "", age: "", phone: "" })} className="flex-1 h-12 rounded-xl">
+        <Button variant="outline" onClick={handleSkip} className="flex-1 h-12 rounded-xl">
           Skip
         </Button>
-        <Button onClick={() => onNext({ name, age, phone })} className="flex-1 h-12 rounded-xl gap-2">
+        <Button onClick={handleContinue} className="flex-1 h-12 rounded-xl gap-2">
           Continue
           <ArrowRight className="h-4 w-4" />
         </Button>
@@ -263,12 +493,13 @@ function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: strin
 
 // ── Step 2: Questionnaire ─────────────────────────────────────────────────────
 function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => void }) {
-  const [messages,     setMessages]     = useState([{ from: "bot", text: questions[0].text }])
-  const [input,        setInput]        = useState("")
+  const [messages,      setMessages]      = useState([{ from: "bot", text: questions[0].text }])
+  const [input,         setInput]         = useState("")
+  const [inputError,    setInputError]    = useState<string | null>(null)
   const [questionIndex, setQuestionIndex] = useState(0)
-  const [answers,      setAnswers]      = useState<number[]>([])
-  const [bmiHeightCm,  setBmiHeightCm]  = useState<string>("")
-  const [bmiWeightKg,  setBmiWeightKg]  = useState<string>("")
+  const [answers,       setAnswers]       = useState<number[]>([])
+  const [bmiHeightCm,   setBmiHeightCm]   = useState<string>("")
+  const [bmiWeightKg,   setBmiWeightKg]   = useState<string>("")
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const currentQuestion = questions[questionIndex]
@@ -278,6 +509,12 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
+  // ── Reset error when question changes ──
+  useEffect(() => {
+    setInputError(null)
+    setInput("")
+  }, [questionIndex])
+
   // ── Go back one question ──
   const handleBack = () => {
     if (questionIndex === 0) return
@@ -286,6 +523,7 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
     setAnswers(prev => prev.slice(0, -1))
     setQuestionIndex(prevIndex)
     setInput("")
+    setInputError(null)
     setBmiHeightCm("")
     setBmiWeightKg("")
   }
@@ -301,32 +539,59 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
       setAnswers(updatedAnswers)
       setQuestionIndex(nextIndex)
       setInput("")
+      setInputError(null)
     } else {
       newMessages.push({ from: "bot", text: "✅ Questionnaire complete! Proceed to upload files." })
       setMessages(newMessages)
       setAnswers(updatedAnswers)
       setQuestionIndex(nextIndex)
       setInput("")
+      setInputError(null)
       setTimeout(() => onComplete(updatedAnswers), 800)
     }
   }
 
   const handleNumberSubmit = () => {
-    if (!input.trim()) return
+    if (!input.trim()) {
+      setInputError("Please enter a value")
+      return
+    }
+
+    const error = validateNumberQuestion(currentQuestion.id, input.trim())
+    if (error) {
+      setInputError(error)
+      return
+    }
+
     const raw   = input.trim()
     const value = parseFloat(raw)
-    if (isNaN(value)) { alert("Please enter a valid number"); return }
 
     if (currentQuestion.id === 12) {
       const inputAsPercentage = value > 1
       const decimalValue      = inputAsPercentage ? value / 100 : value
       const safeDecimalValue  = Math.max(0, Math.min(1, decimalValue))
       const displayText       = inputAsPercentage ? `${value}%` : `${(value * 100).toFixed(0)}%`
+      setInputError(null)
       handleAnswer(safeDecimalValue, displayText)
       return
     }
 
+    // Age must be an integer
+    if (currentQuestion.id === 0 && !Number.isInteger(value)) {
+      setInputError("Age must be a whole number")
+      return
+    }
+
+    setInputError(null)
     handleAnswer(value, raw)
+  }
+
+  const handleInputChange = (v: string) => {
+    setInput(v)
+    if (inputError) {
+      const err = validateNumberQuestion(currentQuestion.id, v)
+      setInputError(err)
+    }
   }
 
   // ── Render the contextual info card ──
@@ -496,24 +761,32 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                   <p className="text-xs text-muted-foreground px-1">💡 {(currentQuestion as any).hint}</p>
                 )}
                 <div className="flex gap-3">
-                  <div className="flex flex-1 items-center gap-2">
-                    <input
-                      value={input}
-                      onChange={e => setInput(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && handleNumberSubmit()}
-                      placeholder={(currentQuestion as any).placeholder}
-                      type="number"
-                      step="any"
-                      className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    {currentQuestion.id === 12 && (
-                      <span className="text-sm text-muted-foreground select-none">%</span>
-                    )}
+                  <div className="flex flex-1 flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={input}
+                        onChange={e => handleInputChange(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && handleNumberSubmit()}
+                        placeholder={(currentQuestion as any).placeholder}
+                        type="number"
+                        step={currentQuestion.id === 0 ? "1" : "any"}
+                        min={currentQuestion.id === 0 ? 1 : undefined}
+                        max={currentQuestion.id === 0 ? 120 : undefined}
+                        className={cn(
+                          "flex-1 rounded-xl border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                          inputError ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
+                        )}
+                      />
+                      {currentQuestion.id === 12 && (
+                        <span className="text-sm text-muted-foreground select-none">%</span>
+                      )}
+                    </div>
+                    {inputError && <FieldError message={inputError} />}
                   </div>
                   <button
                     onClick={handleNumberSubmit}
                     disabled={!input.trim()}
-                    className={cn("flex h-12 w-12 items-center justify-center rounded-xl transition-all",
+                    className={cn("flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-all self-start",
                       input.trim() ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground cursor-not-allowed")}
                   >
                     <Send className="h-5 w-5" />
@@ -545,25 +818,44 @@ function UploadStep({
   analyzing: boolean
   patientName: string
 }) {
-  const [xray,  setXray]  = useState<File | null>(null)
-  const [ct,    setCt]    = useState<File | null>(null)
-  const [audio, setAudio] = useState<File | null>(null)
+  const [xray,          setXray]          = useState<File | null>(null)
+  const [ct,            setCt]            = useState<File | null>(null)
+  const [audio,         setAudio]         = useState<File | null>(null)
+  const [showXrayGuide, setShowXrayGuide] = useState(false)
+  const [showCtGuide,   setShowCtGuide]   = useState(false)
   const xrayRef  = useRef<HTMLInputElement>(null)
   const ctRef    = useRef<HTMLInputElement>(null)
   const audioRef = useRef<HTMLInputElement>(null)
 
-  const FileUploadBox = ({ label, icon: Icon, color, bgColor, file, onFile, inputRef, accept, hint }: any) => (
+  const ScanUploadBox = ({
+    label, icon: Icon, color, bgColor, file, onFile, inputRef, hint, showGuide, onToggleGuide, guideType
+  }: any) => (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center gap-3 mb-4">
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", bgColor)}>
           <Icon className={cn("h-5 w-5", color)} />
         </div>
-        <div>
+        <div className="flex-1">
           <h3 className="font-semibold text-foreground">{label}</h3>
           <p className="text-xs text-muted-foreground">{hint}</p>
         </div>
-        {file && <div className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white"><Check className="h-4 w-4" /></div>}
+        <div className="flex items-center gap-2">
+          {file && <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white"><Check className="h-4 w-4" /></div>}
+          <button
+            onClick={onToggleGuide}
+            className={cn(
+              "flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors border",
+              showGuide
+                ? "bg-primary/10 text-primary border-primary/20"
+                : "bg-muted text-muted-foreground border-border hover:text-foreground"
+            )}
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+            {showGuide ? "Hide guide" : "How to upload"}
+          </button>
+        </div>
       </div>
+
       {file ? (
         <div className="flex items-center justify-between rounded-xl bg-muted p-3">
           <div className="flex items-center gap-2">
@@ -580,9 +872,13 @@ function UploadStep({
           className="w-full rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/30 py-6 text-center transition-all">
           <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">Click to upload <span className="text-primary font-medium">optional</span></p>
+          <p className="text-xs text-muted-foreground mt-1">JPG or PNG</p>
         </button>
       )}
-      <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={e => e.target.files?.[0] && onFile(e.target.files[0])} />
+
+      {showGuide && <ScanInstructionsCard type={guideType} />}
+
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && onFile(e.target.files[0])} />
     </div>
   )
 
@@ -602,17 +898,35 @@ function UploadStep({
         </p>
       </div>
 
-      <FileUploadBox
-        label="Chest X-ray" icon={Scan}
-        color="text-emerald-600 dark:text-emerald-400" bgColor="bg-emerald-500/10"
-        file={xray} onFile={setXray} inputRef={xrayRef} accept="image/*" hint="Optional — JPG, PNG"
-      />
-      <FileUploadBox
-        label="CT Scan" icon={Layers}
-        color="text-amber-600 dark:text-amber-400" bgColor="bg-amber-500/10"
-        file={ct} onFile={setCt} inputRef={ctRef} accept="image/*" hint="Optional — JPG, PNG"
+      <ScanUploadBox
+        label="Chest X-ray"
+        icon={Scan}
+        color="text-emerald-600 dark:text-emerald-400"
+        bgColor="bg-emerald-500/10"
+        file={xray}
+        onFile={setXray}
+        inputRef={xrayRef}
+        hint="Optional — JPG, PNG (PA view preferred)"
+        showGuide={showXrayGuide}
+        onToggleGuide={() => setShowXrayGuide(v => !v)}
+        guideType="xray"
       />
 
+      <ScanUploadBox
+        label="CT Scan"
+        icon={Layers}
+        color="text-amber-600 dark:text-amber-400"
+        bgColor="bg-amber-500/10"
+        file={ct}
+        onFile={setCt}
+        inputRef={ctRef}
+        hint="Optional — JPG, PNG (axial slice preferred)"
+        showGuide={showCtGuide}
+        onToggleGuide={() => setShowCtGuide(v => !v)}
+        guideType="ct"
+      />
+
+      {/* Audio upload */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10">
@@ -620,7 +934,7 @@ function UploadStep({
           </div>
           <div>
             <h3 className="font-semibold text-foreground">Lung Audio</h3>
-            <p className="text-xs text-muted-foreground">Optional — Upload WAV file</p>
+            <p className="text-xs text-muted-foreground">Optional — Upload WAV file of breath sounds</p>
           </div>
           {audio && <div className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white"><Check className="h-4 w-4" /></div>}
         </div>
