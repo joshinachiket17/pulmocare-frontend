@@ -30,6 +30,15 @@ const questions = [
   { id: 13, text: "Do you produce sputum (mucus) when coughing?", type: "choice", choices: [{ label: "None", value: 0 }, { label: "Normal amount", value: 1 }, { label: "Excessive", value: 2 }] },
 ]
 
+// ── Per-question input constraints ────────────────────────────────────────────
+const inputConstraints: Record<number, { min: number; max: number; step: number; integer?: boolean }> = {
+  0:  { min: 1,    max: 120,  step: 1,    integer: true  }, // age
+  3:  { min: 0.5,  max: 2.5,  step: 0.01                 }, // height (m)
+  6:  { min: 0,    max: 300,  step: 0.1                  }, // pack-years
+  10: { min: 1,    max: 60,   step: 1,    integer: true  }, // respiratory rate
+  12: { min: 1,    max: 100,  step: 1,    integer: true  }, // SpO2 (%)
+}
+
 // ── Validation helpers ────────────────────────────────────────────────────────
 
 function validateAge(value: string): string | null {
@@ -41,7 +50,7 @@ function validateAge(value: string): string | null {
 }
 
 function validatePhone(value: string): string | null {
-  if (!value.trim()) return null // optional
+  if (!value.trim()) return null
   const digits = value.replace(/\D/g, "")
   if (digits.length !== 10) return "Phone must be exactly 10 digits"
   if (!/^[6-9]/.test(digits)) return "Enter a valid Indian mobile number (starts with 6–9)"
@@ -78,14 +87,31 @@ function validatePackYears(value: string): string | null {
   return null
 }
 
-// Per-question validation
+function validateSpO2(value: string): string | null {
+  if (!value.trim()) return null // skippable
+  const n = Number(value)
+  if (isNaN(n) || n < 1 || n > 100) return "SpO2 must be between 1 and 100 (%)"
+  return null
+}
+
 function validateNumberQuestion(id: number, value: string): string | null {
   if (id === 0)  return validateQuestionnaireAge(value)
   if (id === 3)  return validateHeight(value)
   if (id === 6)  return validatePackYears(value)
   if (id === 10) return validateRespiratoryRate(value)
-  if (id === 12) return null // SpO2 is skippable
+  if (id === 12) return validateSpO2(value)
   return null
+}
+
+// Clamp a value to allowed range on blur
+function clampToConstraints(id: number, value: string): string {
+  const c = inputConstraints[id]
+  if (!c || !value.trim()) return value
+  let n = parseFloat(value)
+  if (isNaN(n)) return value
+  n = Math.min(c.max, Math.max(c.min, n))
+  if (c.integer) n = Math.round(n)
+  return String(n)
 }
 
 // ── Info cards ────────────────────────────────────────────────────────────────
@@ -245,58 +271,40 @@ function ScanInstructionsCard({ type }: { type: "xray" | "ct" }) {
         </p>
       </div>
 
-      {/* Sample image placeholder (SVG representation) */}
       <div className="rounded-lg overflow-hidden border border-border bg-black flex items-center justify-center" style={{ height: 160 }}>
         {isXray ? (
-          // Simplified X-ray silhouette SVG
           <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
             <rect width="240" height="160" fill="#111" />
-            {/* Ribcage outline */}
             <ellipse cx="120" cy="80" rx="70" ry="60" fill="none" stroke="#e5e7eb" strokeWidth="1.5" opacity="0.6" />
-            {/* Ribs */}
             {[40,55,70,85,100,115].map((y, i) => (
               <g key={i}>
                 <path d={`M 60 ${y} Q 50 ${y+8} 55 ${y+18}`} fill="none" stroke="#d1d5db" strokeWidth="1.2" />
                 <path d={`M 180 ${y} Q 190 ${y+8} 185 ${y+18}`} fill="none" stroke="#d1d5db" strokeWidth="1.2" />
               </g>
             ))}
-            {/* Spine */}
             <rect x="116" y="20" width="8" height="120" rx="4" fill="#9ca3af" opacity="0.6" />
-            {/* Lungs */}
             <ellipse cx="90" cy="80" rx="30" ry="45" fill="#1f2937" stroke="#6b7280" strokeWidth="1" />
             <ellipse cx="150" cy="80" rx="30" ry="45" fill="#1f2937" stroke="#6b7280" strokeWidth="1" />
-            {/* Heart shadow */}
             <ellipse cx="110" cy="90" rx="18" ry="22" fill="#374151" opacity="0.8" />
-            {/* Labels */}
             <text x="120" y="152" textAnchor="middle" fill="#6b7280" fontSize="9" fontFamily="sans-serif">Sample Chest X-ray — Posterior-Anterior (PA) View</text>
           </svg>
         ) : (
-          // Simplified CT scan cross-section SVG
           <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
             <rect width="240" height="160" fill="#111" />
-            {/* Outer body */}
             <ellipse cx="120" cy="80" rx="85" ry="68" fill="#1c1c1c" stroke="#4b5563" strokeWidth="1.5" />
-            {/* Left lung */}
             <ellipse cx="85" cy="75" rx="32" ry="38" fill="#0f172a" stroke="#374151" strokeWidth="1" />
-            {/* Right lung */}
             <ellipse cx="155" cy="75" rx="32" ry="38" fill="#0f172a" stroke="#374151" strokeWidth="1" />
-            {/* Heart */}
             <ellipse cx="112" cy="85" rx="20" ry="24" fill="#292524" stroke="#57534e" strokeWidth="1" />
-            {/* Spine */}
             <circle cx="120" cy="130" r="14" fill="#1e293b" stroke="#64748b" strokeWidth="1" />
             <circle cx="120" cy="130" r="6" fill="#334155" />
-            {/* Aorta */}
             <circle cx="130" cy="88" r="5" fill="#1e293b" stroke="#6b7280" strokeWidth="1" />
-            {/* Pulmonary vessels */}
             <circle cx="95" cy="80" r="3" fill="#374151" stroke="#6b7280" strokeWidth="0.8" />
             <circle cx="145" cy="80" r="3" fill="#374151" stroke="#6b7280" strokeWidth="0.8" />
-            {/* Labels */}
             <text x="120" y="152" textAnchor="middle" fill="#6b7280" fontSize="9" fontFamily="sans-serif">Sample CT Scan — Axial Cross-section View</text>
           </svg>
         )}
       </div>
 
-      {/* Instructions list */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Upload checklist</p>
         <ul className="space-y-1.5">
@@ -385,19 +393,29 @@ function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: strin
   const [phoneError, setPhoneError] = useState<string | null>(null)
 
   const handleAgeChange = (v: string) => {
-    setAge(v)
-    setAgeError(validateAge(v) )
+    // Strip non-digit characters immediately; cap at 3 chars
+    const sanitized = v.replace(/[^0-9]/g, "").slice(0, 3)
+    setAge(sanitized)
+    setAgeError(validateAge(sanitized))
+  }
+
+  // Clamp to 1–120 when focus leaves
+  const handleAgeBlur = () => {
+    if (!age.trim()) return
+    const n = parseInt(age, 10)
+    const clamped = isNaN(n) ? age : String(Math.min(120, Math.max(1, n)))
+    setAge(clamped)
+    setAgeError(validateAge(clamped))
   }
 
   const handlePhoneChange = (v: string) => {
-    // Allow only digits while typing
     const digits = v.replace(/\D/g, "").slice(0, 10)
     setPhone(digits)
     setPhoneError(validatePhone(digits))
   }
 
   const handleContinue = () => {
-    const ae = age.trim() ? validateAge(age) : null   // age is optional here too
+    const ae = age.trim() ? validateAge(age) : null
     const pe = validatePhone(phone)
     setAgeError(ae)
     setPhoneError(pe)
@@ -417,7 +435,6 @@ function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: strin
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-        {/* Name */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">Patient Name</label>
           <input
@@ -429,16 +446,18 @@ function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: strin
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {/* Age */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Age</label>
             <input
               value={age}
               onChange={e => handleAgeChange(e.target.value)}
+              onBlur={handleAgeBlur}
               placeholder="e.g. 45"
               type="number"
+              inputMode="numeric"
               min={1}
               max={120}
+              step={1}
               className={cn(
                 "w-full rounded-xl border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
                 ageError ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
@@ -450,7 +469,6 @@ function PatientInfoStep({ onNext }: { onNext: (info: { name: string; age: strin
             )}
           </div>
 
-          {/* Phone */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Phone Number</label>
             <input
@@ -504,18 +522,17 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
 
   const currentQuestion = questions[questionIndex]
   const progress = (questionIndex / questions.length) * 100
+  const constraints = inputConstraints[currentQuestion?.id]
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // ── Reset error when question changes ──
   useEffect(() => {
     setInputError(null)
     setInput("")
   }, [questionIndex])
 
-  // ── Go back one question ──
   const handleBack = () => {
     if (questionIndex === 0) return
     const prevIndex = questionIndex - 1
@@ -576,7 +593,6 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
       return
     }
 
-    // Age must be an integer
     if (currentQuestion.id === 0 && !Number.isInteger(value)) {
       setInputError("Age must be a whole number")
       return
@@ -594,7 +610,16 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
     }
   }
 
-  // ── Render the contextual info card ──
+  // Auto-clamp when user leaves the field
+  const handleInputBlur = () => {
+    if (!input.trim()) return
+    const clamped = clampToConstraints(currentQuestion.id, input)
+    if (clamped !== input) {
+      setInput(clamped)
+      setInputError(validateNumberQuestion(currentQuestion.id, clamped))
+    }
+  }
+
   const renderInfoCard = () => {
     const infoType = (currentQuestion as any).infoType
     if (!infoType) return null
@@ -605,7 +630,6 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
     return null
   }
 
-  // ── Shared Yes/No buttons ──
   const YesNoButtons = () => (
     <div className="flex gap-3">
       <button onClick={() => handleAnswer(1, "Yes")} className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold transition-colors">✅ Yes</button>
@@ -613,7 +637,6 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
     </div>
   )
 
-  // ── Shared choice buttons ──
   const ChoiceButtons = ({ choices }: { choices: { label: string; value: number }[] }) => (
     <div className="flex flex-wrap gap-2">
       {choices.map(choice => (
@@ -630,7 +653,6 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
 
   return (
     <div className="flex flex-col h-full">
-      {/* Progress bar */}
       <div className="mb-4">
         <div className="flex justify-between text-sm mb-1">
           <span className="text-muted-foreground">Question {Math.min(questionIndex + 1, questions.length)} of {questions.length}</span>
@@ -642,7 +664,6 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
       </div>
 
       <div className="flex-1 rounded-2xl border border-border bg-card overflow-hidden flex flex-col min-h-0">
-        {/* Chat history */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((m, idx) => (
             <div key={idx} className={cn("flex gap-3", m.from === "user" ? "flex-row-reverse" : "flex-row")}>
@@ -659,11 +680,9 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
           <div ref={chatEndRef} />
         </div>
 
-        {/* Input panel */}
         {questionIndex < questions.length && (
           <div className="border-t border-border p-4 space-y-3">
 
-            {/* Back button */}
             {questionIndex > 0 && (
               <button
                 onClick={handleBack}
@@ -674,21 +693,14 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
               </button>
             )}
 
-            {/* Contextual info card */}
             {renderInfoCard()}
 
-            {/* Answer controls */}
             {currentQuestion.type === "yesno" && <YesNoButtons />}
-
             {currentQuestion.type === "yesno_info" && <YesNoButtons />}
-
-            {currentQuestion.type === "choice_info" && (
-              <ChoiceButtons choices={(currentQuestion as any).choices} />
-            )}
+            {currentQuestion.type === "choice_info" && <ChoiceButtons choices={(currentQuestion as any).choices} />}
 
             {currentQuestion.type === "choice" && (
               currentQuestion.id === 2 ? (
-                // BMI question — special layout with calculator
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="sm:w-64 rounded-xl border border-border bg-card p-4">
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">BMI Calculator</p>
@@ -697,8 +709,20 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                         <label className="text-sm font-medium text-foreground">Height (cm)</label>
                         <input
                           value={bmiHeightCm}
-                          onChange={e => setBmiHeightCm(e.target.value)}
-                          type="number" step="0.1" min="1" placeholder="e.g. 170"
+                          onChange={e => {
+                            const v = e.target.value
+                            if (v === "" || /^\d{0,3}(\.\d{0,1})?$/.test(v)) setBmiHeightCm(v)
+                          }}
+                          onBlur={() => {
+                            const n = parseFloat(bmiHeightCm)
+                            if (!isNaN(n)) setBmiHeightCm(String(Math.min(250, Math.max(1, n))))
+                          }}
+                          type="number"
+                          inputMode="decimal"
+                          step="0.1"
+                          min={1}
+                          max={250}
+                          placeholder="e.g. 170"
                           className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
@@ -706,8 +730,20 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
                         <label className="text-sm font-medium text-foreground">Weight (kg)</label>
                         <input
                           value={bmiWeightKg}
-                          onChange={e => setBmiWeightKg(e.target.value)}
-                          type="number" step="0.1" min="1" placeholder="e.g. 70"
+                          onChange={e => {
+                            const v = e.target.value
+                            if (v === "" || /^\d{0,3}(\.\d{0,1})?$/.test(v)) setBmiWeightKg(v)
+                          }}
+                          onBlur={() => {
+                            const n = parseFloat(bmiWeightKg)
+                            if (!isNaN(n)) setBmiWeightKg(String(Math.min(300, Math.max(1, n))))
+                          }}
+                          type="number"
+                          inputMode="decimal"
+                          step="0.1"
+                          min={1}
+                          max={300}
+                          placeholder="e.g. 70"
                           className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
@@ -757,21 +793,42 @@ function QuestionnaireStep({ onComplete }: { onComplete: (answers: number[]) => 
 
             {currentQuestion.type === "number" && (
               <div className="space-y-2">
+                {/* Always-visible range badge */}
+                {constraints && (
+                  <div className="flex items-center gap-1.5 rounded-lg bg-muted/50 border border-border px-3 py-2">
+                    <Info className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      Allowed range:{" "}
+                      <span className="font-semibold text-foreground">
+                        {constraints.min}
+                        {currentQuestion.id === 3 ? " m" : ""} – {constraints.max}
+                        {currentQuestion.id === 12 ? "%" :
+                         currentQuestion.id === 3  ? " m" :
+                         currentQuestion.id === 10 ? " breaths/min" : ""}
+                      </span>
+                      {constraints.integer ? " · whole numbers only" : ""}
+                    </p>
+                  </div>
+                )}
+
                 {(currentQuestion as any).hint && (
                   <p className="text-xs text-muted-foreground px-1">💡 {(currentQuestion as any).hint}</p>
                 )}
+
                 <div className="flex gap-3">
                   <div className="flex flex-1 flex-col gap-1">
                     <div className="flex items-center gap-2">
                       <input
                         value={input}
                         onChange={e => handleInputChange(e.target.value)}
+                        onBlur={handleInputBlur}
                         onKeyDown={e => e.key === "Enter" && handleNumberSubmit()}
                         placeholder={(currentQuestion as any).placeholder}
                         type="number"
-                        step={currentQuestion.id === 0 ? "1" : "any"}
-                        min={currentQuestion.id === 0 ? 1 : undefined}
-                        max={currentQuestion.id === 0 ? 120 : undefined}
+                        inputMode={constraints?.integer ? "numeric" : "decimal"}
+                        step={constraints?.step ?? "any"}
+                        min={constraints?.min}
+                        max={constraints?.max}
                         className={cn(
                           "flex-1 rounded-xl border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
                           inputError ? "border-destructive focus:border-destructive" : "border-border focus:border-primary"
@@ -926,7 +983,6 @@ function UploadStep({
         guideType="ct"
       />
 
-      {/* Audio upload */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10">
